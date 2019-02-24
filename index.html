@@ -4,42 +4,86 @@
         <style type="text/css" media="screen">
             #colorBoxes {
                 display: grid;
+                width: 210px;
+                height: 210px;
                 grid-template-columns: repeat(2, 1fr);
                 grid-gap: 10px;
                 grid-auto-rows: minmax(100px, auto);
             }
-            h1 { color: #111; font-family: 'Helvetica Neue', sans-serif; font-weight: bold; letter-spacing: -1px; line-height: 1; text-align: center; }
+            #board {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                grid-gap: 10px;
+                grid-auto-rows: minmax(100px, auto);
+                width: 350px;
+                margin: auto;
+                padding-right: 120px;
+            }
+            #prompt {
+                -webkit-text-stroke: 2px black;
+            }
+            h1 { color: #111; font-family: 'Helvetica Neue', sans-serif; font-weight: bolder; letter-spacing: 0px; line-height: 1; text-align: center; }
             #result {
                 padding-top: 0.5em;
                 padding-bottom: 0.5em;
             }
             .success {
                 background-color: greenyellow;
+                transition: 0.25s background-color;
             }
             .failure {
                 background-color: lightcoral;
+                transition: 0.25s background-color;
+            }
+            #colorBoxes div {
+                border: 2px solid black;
+                opacity: 1;
+                width: 100px;
+                height: 100px;
+                transform-origin: center center;
+                transition: 0.5s opacity, 0.5s width, 0.5s height, 0.5s margin-left, 0.5s margin-top;
+                margin-left: 0;
+                margin-top: 0;
+            }
+            #colorBoxes div.fading {
+                opacity: 0;
+                width: 0;
+                height: 0;
+                transition: 0.25s opacity, 0.25s width, 0.25s height, 0.25s margin-left, 0.25s margin-top;
+                transform-origin: center center;
+                margin-left: 50%;
+                margin-top: 50px;
+            }
+            .difficultySelector {
+                margin: auto;
+                width: 138px;
+            }
+            #scoreboard > span {
+                margin-left: 1em;
+            }
+            .difficultySelector div {
+                border: 2px solid black;
+                margin: 5px;
+                padding-left: 50px;
+                width: 80px;
             }
         </style>
     </head>
     <body>
-        <div>
-            <div>
-                Total:
-                <span id="total"></span>
-                Score:
-                <span id="score"></span>
-            </div>
-            <h1 id="prompt"></h1>
-            <div>
-                <div id="colorBoxes">
-                    
-                </div>
-            </div>
-            <h1 id="result"></h1>
-        </div>
+        <div id="container"></div>
 
         
         <script type="text/javascript">
+            let rainbowColors = {
+                "blue": "#0000ff",
+                "red": "#ff0000",
+                "green": "#008000",
+                "yellow": "#ffff00",
+                "purple": "#800080",
+                "black": "#000000",
+                "orange": "#ffa500",
+                "azure": "#f0ffff"
+            };
             let colors = {
   "aliceblue": "#f0f8ff",
   "antiquewhite": "#faebd7",
@@ -211,25 +255,16 @@
                 "🎉 🎈 🎉 🍾 🎉"
             ]
             
-            let state = {
-                score: 0,
-                total: 0
-            }
-
-            let prompt = document.getElementById("prompt");
-            let colorBoxes = document.getElementById("colorBoxes");
-            let resultDiv = document.getElementById("result");
-
             function getRandomKey (obj) {
                 let keys = Object.keys(obj)
                 return keys[ keys.length * Math.random() << 0];
             }
             
-            function getRandomColor() {
-                let key = getRandomKey(colors);
+            function getRandomColor(colorSelection) {
+                let key = getRandomKey(colorSelection);
                 return {
                     name: key,
-                    code: colors[key]
+                    code: colorSelection[key]
                 };
             }
 
@@ -254,59 +289,171 @@
                 score.innerHTML = state.score;
             }
 
-            function createColorBox(color) {
+            function hideFalseBoxes(state, board, callback) {
+                let hideBox = function (box, timeout) {
+                    setTimeout(function () {
+                        box.classList.toggle("fading");
+                    }, timeout);
+                }
+
+                board.colorBoxes.childNodes.forEach(function (box, index) {
+                    hideBox(box, 50*index);
+                });
+
+                setTimeout(callback, 50*4);
+            }
+
+            function createColorBox(state, board, color) {
                 let box = document.createElement("div");
                 box.style["backgroundColor"] = color.code;
+                box.classList.add("fading");
 
                 box.onclick = function () {
-                    if (prompt.innerText == color.name) {
-                        resultDiv.innerHTML = getRandomSuccessMessage();
-                        result.className = "success";
-                        state.score += 1;
+                    hideFalseBoxes(state, board,
+                        function () {
+                            if (state.correctColor.name == color.name) {
+                                board.resultDiv.innerHTML = getRandomSuccessMessage();
+                                board.resultDiv.className = "success";
+                                state.score += 1;
 
-                    } else {
-                        resultDiv.innerHTML = getRandomFailMessage();
-                        result.className = "failure";
-                    }
-                    state.total += 1;
-                    
-                    runProgram();
+                            } else {
+                                board.resultDiv.innerHTML = getRandomFailMessage();
+                                board.resultDiv.className = "failure";
+                            }
+                            state.total += 1;
+                            
+                            runProgram(state, board); 
+                        });
                 }
 
                 return box;
             }
-
-            function createRandomColorBox() {
-                let randomColor = getRandomColor();
-                return createColorBox(randomColor);
-            }
-
-            function addChild(parent, f) {
-                let child = f();
-                parent.appendChild(child);
-            }
             
-            function runProgram() {
-                updateScore();
+            function addChild(state, board, parent, f, data) {
+                console.log(data);
+                let child = f(state, board, ...data);
+                parent.appendChild(child);
 
-                let randomColor = getRandomColor();
+                return child;
+            }
 
-                prompt.innerText = randomColor.name;
+            function setPrompt(state, board) {
+                board.prompt.style["color"] = getRandomColor(state.falseColors).code;
+                board.prompt.innerText = state.correctColor.name;
+            }
 
+            function setBoxes(state, board) {
+                state.falseColors = {};
                 let correctElementPosition = Math.random()*4 << 0
 
-                removeAllChildren(colorBoxes);
+                removeAllChildren(board.colorBoxes);
+                let colors = new Array(4);
+                colors[correctElementPosition] = state.correctColor;
 
                 for (let i = 0; i < 4; i++) {
-                    if (i == correctElementPosition) {
-                        colorBoxes.appendChild(createColorBox(randomColor));
-                    } else {
-                        addChild(colorBoxes, createRandomColorBox);
+                    if (i != correctElementPosition) {
+                        let randomColor;
+                        do {
+                            randomColor = getRandomColor(state.colors);
+                        } while (colors.find(function (c) { if (c == undefined) { return false; } else { return c.name == randomColor.name; } }) != undefined);
+                        state.falseColors[randomColor.name] = randomColor.code;
+                        colors[i] = randomColor;
                     }
+                }
+
+                colors.forEach(function (color, index) {
+                    let child = addChild(state, board, board.colorBoxes, createColorBox, [color]);
+                    setTimeout(function() { child.classList.toggle("fading"); }, (index + 1) * 50 );
+                });
+            }
+
+            function createDifficulty(text, className, callback) {
+                let element = document.createElement("div");
+                element.innerHTML = text;
+                element.onclick = callback;
+                return element;
+            }
+
+            function initBoard(state, board) {
+                board.container.innerHTML = "" +
+                    "<h1 id=\"prompt\"></h1>" +
+                    "<div id=\"board\"><div id=\"scoreboard\">" +
+                        "<span>Total:" +
+                        "<span id=\"total\"></span></span>" +
+                        "<span>Score:" +
+                        "<span id=\"score\"></span></span>" +
+                    "</div>" +
+                    "<div>" +
+                    "<div id=\"colorBoxes\"></div>" +
+                    "</div></div>" +
+                    "<h1 id=\"result\"></h1>"
+                board.prompt = document.getElementById("prompt"),
+                board.colorBoxes = document.getElementById("colorBoxes"),
+                board.resultDiv = document.getElementById("result")
+                
+            }
+
+            function startGame(state, board) {
+                initBoard(state, board);
+                console.log(state);
+                runProgram(state, board);
+            }
+
+            function showDifficultySelector(state, board) {
+                let difficultyContainer = document.createElement("div");
+                difficultyContainer.classList.add("difficultySelector");
+                board.container.innerHTML = "<h1>How hard do you want the game to be?</h1>";
+                board.container.append(difficultyContainer);
+                let difficulties = [
+                    createDifficulty("Not at all", "easiest", function() {
+                        state.difficulty = 0;
+                        state.colors = rainbowColors;
+                        startGame(state, board);
+                    }),
+                    createDifficulty("Somewhat", "easy", function() {
+                        state.difficulty = 1;
+                        state.colors = colors;
+                        startGame(state, board);
+                    })
+                ];
+                difficulties.forEach(function (difficulty) { difficultyContainer.appendChild(difficulty)});
+            }
+            
+            function runProgram(state, board) {
+                if (state.difficulty == -1) {
+                    state.total = 0;
+                    state.score = 0;
+                    state.colors = [];
+                    state.correctColor = {};
+                    state.falseColors = [];
+
+                    showDifficultySelector(state, board);
+                } else {
+                    updateScore(state);
+
+                    state.correctColor = getRandomColor(state.colors);
+                    state.falseColors = [];
+
+                    setBoxes(state, board);
+
+                    // move color-selection out of setboxes, so I don't have the implicit dependency of setprompt to run after setboxes...
+                    setPrompt(state, board);
                 }
             }
 
-            runProgram();
+            let state = {
+                difficulty: -1,
+                score: 0,
+                total: 0,
+                colors: [],
+                correctColor: {},
+                falseColors: {}
+            }
+            let board = {
+                container: document.getElementById("container")
+            }
+
+            runProgram(state, board);
         </script>
     </body>
 </html>
