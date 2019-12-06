@@ -50,6 +50,9 @@
                 margin: auto;
                 width: 138px;
             }
+            #scoreboard {
+                text-align: center;
+            }
             #scoreboard > span {
                 margin-left: 1em;
             }
@@ -369,9 +372,9 @@
             function initBoard(state, board) {
                 board.container.innerHTML = "" +
                     "<div id=\"scoreboard\">" +
-                        "<span>Total:" +
+                        "<span>Total:&nbsp;" +
                         "<span id=\"total\"></span></span>" +
-                        "<span>Score:" +
+                        "<span>Score:&nbsp;" +
                         "<span id=\"score\"></span></span>" +
                     "</div>" +
                     "<h1 id=\"prompt\"></h1>" +
