@@ -4,20 +4,12 @@
         <style type="text/css" media="screen">
             #colorBoxes {
                 display: grid;
-                width: 210px;
-                height: 210px;
+                width: 218px;
+                height: 218px;
                 grid-template-columns: repeat(2, 1fr);
                 grid-gap: 10px;
                 grid-auto-rows: minmax(100px, auto);
-            }
-            #board {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                grid-gap: 10px;
-                grid-auto-rows: minmax(100px, auto);
-                width: 350px;
                 margin: auto;
-                padding-right: 120px;
             }
             #prompt {
                 -webkit-text-stroke: 2px black;
@@ -376,16 +368,14 @@
 
             function initBoard(state, board) {
                 board.container.innerHTML = "" +
-                    "<h1 id=\"prompt\"></h1>" +
-                    "<div id=\"board\"><div id=\"scoreboard\">" +
+                    "<div id=\"scoreboard\">" +
                         "<span>Total:" +
                         "<span id=\"total\"></span></span>" +
                         "<span>Score:" +
                         "<span id=\"score\"></span></span>" +
                     "</div>" +
-                    "<div>" +
+                    "<h1 id=\"prompt\"></h1>" +
                     "<div id=\"colorBoxes\"></div>" +
-                    "</div></div>" +
                     "<h1 id=\"result\"></h1>"
                 board.prompt = document.getElementById("prompt"),
                 board.colorBoxes = document.getElementById("colorBoxes"),
